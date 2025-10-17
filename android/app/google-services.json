@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "889271788639",
+    "project_id": "sos-flutter-f0e44",
+    "storage_bucket": "sos-flutter-f0e44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889271788639:android:4d45b2dd3fed5ee230a7ea",
+        "android_client_info": {
+          "package_name": "com.example.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCB12K1AtNO8Sy5xFZy0CGAiKQwScdjoXI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
