@@ -1,122 +1,288 @@
 import 'package:flutter/material.dart';
+import 'signup.dart';
+import 'home.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
+// REUSABLE COLORS & SPACING
+const Color primaryColor = Color(0xFFFA5246);
+const Color secondaryColor = Color(0xFF808080);
+const double spacingSmall = 10.0;
+const double spacingMedium = 20.0;
+const double spacingLarge = 40.0;
+
+// REUSABLE ERROR TEXT STYLE
+const TextStyle errorTextStyle = TextStyle(
+  fontSize: 15,
+  fontFamily: 'Quicksand',
+  fontWeight: FontWeight.w600,
+  color: Colors.red,
+);
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.orange),
+      home: const LoginScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _LoginScreenState extends State<LoginScreen> {
+  // TEXTFIELD CONTROLLERS
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
-  void _incrementCounter() {
+  // FOR ERROR MESSAGES
+  String? _usernameError;
+  String? _passwordError;
+
+  void _login() {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _usernameError = username.isEmpty ? 'Please fill out this field' : null;
+      _passwordError = password.isEmpty ? 'Please fill out this field' : null;
     });
+
+    if (_usernameError != null || _passwordError != null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => HomeScreen()),
+    );
+  }
+
+  // TEXTFIELDS BUILDER
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    bool obscureText = false,
+    String? errorText,
+    VoidCallback? toggleVisibility,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      onChanged: (value) {
+        if (errorText != null && value.isNotEmpty) {
+          setState(() {
+            if (label == 'Username') _usernameError = null;
+            if (label == 'Password') _passwordError = null;
+          });
+        }
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(
+          fontSize: 18,
+          fontFamily: 'Quicksand',
+          fontWeight: FontWeight.w500,
+          color: secondaryColor,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xFFACACAC), width: 0.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 15,
+          horizontal: 15,
+        ),
+        errorText: errorText,
+        errorStyle: errorTextStyle,
+        suffixIcon: toggleVisibility != null
+            ? IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility : Icons.visibility_off,
+                  color: secondaryColor,
+                ),
+                onPressed: toggleVisibility,
+              )
+            : null,
+      ),
+    );
+  }
+
+  // LOGIN BUTTON BUILDER
+  Widget _buildLoginButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _login,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+        ),
+        child: const Text(
+          'Login',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontFamily: 'REM',
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      backgroundColor: const Color(0xFFFAFAFA),
+      body: Stack(
+        children: [
+          // BACKGROUND IMAGE & LOGO
+          Column(
+            children: [
+              Stack(
+                children: [
+                  Container(
+                    height: screenHeight / 4,
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/login_bg.png'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: screenHeight / 20,
+                    left: 30,
+                    child: Image.asset(
+                      'assets/login_logo.png',
+                      height: 100,
+                      width: 100,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // LOGIN CARD
+          Positioned(
+            top: screenHeight / 4 - 40,
+            left: 0,
+            right: 0,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(35),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Column(
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: const Text(
+                      'Welcome to ResQ!',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                        fontFamily: 'REM',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: spacingSmall),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: const Text(
+                      'Your safety starts here',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: secondaryColor,
+                        fontFamily: 'Quicksand',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: spacingLarge),
+
+                  _buildTextField(
+                    controller: _usernameController,
+                    label: 'Username',
+                    errorText: _usernameError,
+                  ),
+                  const SizedBox(height: spacingMedium),
+                  _buildTextField(
+                    controller: _passwordController,
+                    label: 'Password',
+                    obscureText: _obscurePassword,
+                    errorText: _passwordError,
+                    toggleVisibility: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                  ),
+                  const SizedBox(height: spacingLarge),
+
+                  //LOGIN BUTTON
+                  _buildLoginButton(),
+
+                  const SizedBox(height: spacingMedium),
+
+                  // SIGN UP ROW
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Don’t have an account?',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: secondaryColor,
+                          fontFamily: "Quicksand",
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SignupScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Sign up',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: primaryColor,
+                            fontFamily: "Quicksand",
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

@@ -1,0 +1,603 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:frontend/main.dart';
+import 'pendingsos.dart';
+import 'helparrived.dart';
+import 'historydetails.dart';
+
+// REUSABLE COLORS & SPACING
+const Color primaryColor = Color(0xFFFA5246);
+const Color secondaryColor = Color(0xFF808080);
+const double homePadding = 20.0;
+const double spacingSmall = 15.0;
+const double spacingMedium = 20.0;
+
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _showBanner = false;
+  String _dots = '';
+  Timer? _dotTimer;
+  String _selectedFilter = 'All';
+
+  // SOS CIRCLE PROGRESS
+  double _sosProgress = 0.0;
+  Timer? _sosTimer;
+
+  // HISTORY DEFAULT ENTRIES
+  final List<Map<String, dynamic>> _historyEntries = [
+    {
+      'type': 'Medical',
+      'date': '10/18/2025',
+      'description': 'Blk 123 Street. Aniban 2',
+      'status': 'Completed',
+      'latitude': 14.5995,
+      'longitude': 120.9842,
+    },
+    {
+      'type': 'Fire',
+      'date': '10/16/2025',
+      'description': 'Blk 123 Street. Aniban 2',
+      'status': 'Responded',
+      'latitude': 14.6190,
+      'longitude': 120.9820,
+    },
+    {
+      'type': 'Earthquake',
+      'date': '10/14/2025',
+      'description': 'Blk 123 Street. Aniban 2',
+      'status': 'Cancelled',
+      'latitude': 14.6190,
+      'longitude': 120.9820,
+    },
+  ];
+
+  // FILTERED DEFAULT HISTORY ENTRIES
+  List<Map<String, dynamic>> get _filteredHistory {
+    if (_selectedFilter == 'All') return _historyEntries;
+    return _historyEntries
+        .where(
+          (entry) =>
+              entry['status'].toString().toLowerCase() ==
+              _selectedFilter.toLowerCase(),
+        )
+        .toList();
+  }
+
+  // SOS DOT ANIMATION FOR BANNER
+  void _startDotAnimation() {
+    _dotTimer?.cancel();
+    _dotTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_showBanner) {
+        setState(() {
+          _dots = _dots.length < 3 ? '$_dots.' : '';
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _dotTimer?.cancel();
+    _sosTimer?.cancel();
+    super.dispose();
+  }
+
+  // SOS ACTION
+  Future<void> _onSOSTapped() async {
+    setState(() {
+      _showBanner = true;
+      _dots = '';
+      _sosProgress = 0.0;
+    });
+    _startDotAnimation();
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PendingSOSScreen()),
+    );
+
+    if (result == false) {
+      setState(() {
+        _showBanner = false;
+      });
+    }
+  }
+
+  // FILTER BUTTON BUILDER
+  Widget _buildFilterButton(String label) {
+    bool isSelected = _selectedFilter == label;
+    return Container(
+      margin: const EdgeInsets.only(right: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? primaryColor : Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: primaryColor.withOpacity(0.45), width: 2),
+          ),
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _selectedFilter = label;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(13),
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : primaryColor,
+                fontFamily: "REM",
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // HISTORY CARD
+  Widget _buildHistoryCard({required Map<String, dynamic> entry}) {
+    String type = entry['type'];
+    String date = entry['date'];
+    String description = entry['description'];
+    String status = entry['status'];
+    double latitude = entry['latitude'];
+    double longitude = entry['longitude'];
+
+    Color borderColor = primaryColor;
+    Color statusColor;
+    Color statusBorderColor;
+
+    // STATUS COLORS
+    switch (status.toLowerCase()) {
+      case 'completed':
+        statusColor = const Color(0xFF00BA00).withOpacity(0.50);
+        statusBorderColor = const Color(0xFF00BA00);
+        break;
+      case 'responded':
+        statusColor = const Color(0xFFF0D210).withOpacity(0.60);
+        statusBorderColor = const Color(0xFFE3C610);
+        break;
+      case 'cancelled':
+        statusColor = secondaryColor.withOpacity(0.60);
+        statusBorderColor = secondaryColor;
+        break;
+      default:
+        statusColor = Colors.blueGrey.withOpacity(0.5);
+        statusBorderColor = Colors.blueGrey;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HistoryDetailsScreen(historyEntry: entry),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        decoration: BoxDecoration(
+          border: Border.all(color: borderColor, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(2, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // MAP
+            Container(
+              width: 120,
+              height: 140,
+              decoration: BoxDecoration(
+                border: Border(right: BorderSide(color: borderColor, width: 2)),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  bottomLeft: Radius.circular(10),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  bottomLeft: Radius.circular(10),
+                ),
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: LatLng(latitude, longitude),
+                    initialZoom: 14,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.none,
+                    ),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.frontend',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          width: 40,
+                          height: 40,
+                          point: LatLng(latitude, longitude),
+                          child: const Icon(
+                            Icons.location_pin,
+                            color: Colors.red,
+                            size: 35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // RIGHT CONTAINER
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      type,
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: "REM",
+                        color: primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      date,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: secondaryColor,
+                        fontFamily: "Quicksand",
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: secondaryColor,
+                        fontFamily: "Quicksand",
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 3,
+                          horizontal: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: statusBorderColor,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(
+                          status.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: "Quicksand",
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.orange),
+      home: Scaffold(
+        backgroundColor: const Color(0xFFFAFAFA),
+        //TOP
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          title: Row(
+            children: [
+              Image.asset('assets/home_logo.png', width: 40, height: 40),
+              const SizedBox(width: 10),
+              const Text(
+                'RESQ',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                  fontFamily: 'REM',
+                ),
+              ),
+            ],
+          ),
+          centerTitle: false,
+          actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              },
+              icon: const Icon(
+                Icons.exit_to_app,
+                color: Colors.redAccent,
+                size: 30,
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            const SizedBox(height: 10),
+            // BANNER
+            if (_showBanner)
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PendingSOSScreen()),
+                  );
+                  if (result == false) {
+                    setState(() {
+                      _showBanner = false;
+                    });
+                  }
+                },
+                child: Container(
+                  width: MediaQuery.of(context).size.width,
+                  color: primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Text(
+                      'HELP IS ON THE WAY $_dots',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontFamily: 'REM',
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(homePadding),
+                child: Column(
+                  children: [
+                    // SOS BUTTON & REMINDER
+                    Column(
+                      children: [
+                        GestureDetector(
+                          onTapDown: (_) {
+                            _sosProgress = 0.0;
+                            _sosTimer?.cancel();
+                            const duration = Duration(milliseconds: 30);
+                            _sosTimer = Timer.periodic(duration, (timer) {
+                              if (!mounted) return;
+                              setState(() {
+                                _sosProgress += 30 / 3000;
+                                if (_sosProgress >= 1.0) {
+                                  _sosProgress = 1.0;
+                                  _sosTimer?.cancel();
+                                  _onSOSTapped();
+                                }
+                              });
+                            });
+                          },
+                          onTapUp: (_) {
+                            if (_sosProgress < 1.0) {
+                              _sosTimer?.cancel();
+                              setState(() {
+                                _sosProgress = 0.0;
+                              });
+                            }
+                          },
+                          onTapCancel: () {
+                            _sosTimer?.cancel();
+                            setState(() {
+                              _sosProgress = 0.0;
+                            });
+                          },
+                          child: Center(
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 280,
+                                  height: 280,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFDDDB),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                Container(
+                                  width: 240,
+                                  height: 240,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFC3BE),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                Container(
+                                  width: 205,
+                                  height: 205,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFA5246),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                // CIRCULAR PROGRESS
+                                SizedBox(
+                                  width: 220,
+                                  height: 220,
+                                  child: CircularProgressIndicator(
+                                    value: _sosProgress,
+                                    strokeWidth: 6,
+                                    backgroundColor: Colors.white.withOpacity(
+                                      0.3,
+                                    ),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          Colors.redAccent,
+                                        ),
+                                  ),
+                                ),
+                                const Text(
+                                  'SOS',
+                                  style: TextStyle(
+                                    fontSize: 70,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontFamily: "REM",
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: spacingSmall),
+                        const Text(
+                          'Reminder: Press & hold SOS button for 3 seconds to ask for help.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: secondaryColor,
+                            fontFamily: 'Quicksand',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: spacingMedium),
+
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => HelpArrivedScreen(),
+                              ),
+                            );
+                          },
+                          child: const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Help Arrived',
+                              style: TextStyle(
+                                fontSize: 25,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFFA5246),
+                                fontFamily: 'REM',
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'History',
+                            style: TextStyle(
+                              fontSize: 25,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFA5246),
+                              fontFamily: 'REM',
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: spacingSmall),
+
+                        // SCROLLABLE FILTER
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildFilterButton('All'),
+                              _buildFilterButton('Responded'),
+                              _buildFilterButton('Completed'),
+                              _buildFilterButton('Cancelled'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: spacingMedium),
+                      ],
+                    ),
+
+                    // HISTORY LIST
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: _filteredHistory
+                              .map((entry) => _buildHistoryCard(entry: entry))
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
