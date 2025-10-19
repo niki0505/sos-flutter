@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/main.dart';
+import 'package:frontend/services/firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
@@ -28,6 +29,9 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
+  // FIRE STORE
+  final FirestoreService fireStoreService = FirestoreService();
+
   // TEXTFIELD CONTROLLERS
   final TextEditingController _firstnameController = TextEditingController();
   final TextEditingController _lastnameController = TextEditingController();
@@ -231,7 +235,18 @@ class _SignupScreenState extends State<SignupScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _signup,
+        onPressed: () {
+          fireStoreService.addUser(
+            _firstnameController.text,
+            _lastnameController.text,
+            _sexController.text,
+            _birthdateController.text,
+            _mobileController.text,
+            _usernameController.text.trim(),
+            _passwordController.text.trim(),
+          );
+          _signup();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           padding: const EdgeInsets.symmetric(vertical: 16),

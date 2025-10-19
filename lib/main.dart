@@ -1,8 +1,14 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/adminhome.dart';
+import 'package:frontend/firebase_options.dart';
+import 'package:frontend/services/firestore.dart';
 import 'signup.dart';
 import 'home.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -42,6 +48,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // FIRESTORE
+  final FirestoreService fireStoreService = FirestoreService();
+
   // TEXTFIELD CONTROLLERS
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -62,10 +71,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_usernameError != null || _passwordError != null) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => HomeScreen()),
+    checkPassword(context);
+  }
+
+  void checkPassword(BuildContext context) async {
+    String? password = await fireStoreService.getPasswordByUsername(
+      _usernameController.text.trim(),
     );
+    bool? isAdmin = await fireStoreService.getRole(
+      _usernameController.text.trim(),
+    );
+    if (password != null && password == _passwordController.text.trim()) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              isAdmin == true ? AdminHomeScreen() : HomeScreen(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Invalid credentials.")));
+    }
   }
 
   // TEXTFIELDS BUILDER
