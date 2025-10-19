@@ -5,11 +5,22 @@ import 'package:frontend/firebase_options.dart';
 import 'package:frontend/services/firestore.dart';
 import 'signup.dart';
 import 'home.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+  final prefs = await SharedPreferences.getInstance();
+  final String? username = prefs.getString('username');
+  final bool? isAdmin = prefs.getBool('isAdmin');
+
+  Widget firstScreen;
+  if (username != null) {
+    firstScreen = isAdmin == true ? AdminHomeScreen() : HomeScreen();
+  } else {
+    firstScreen = const LoginScreen();
+  }
+  runApp(MyApp(firstScreen: firstScreen));
 }
 
 // REUSABLE COLORS & SPACING
@@ -28,14 +39,15 @@ const TextStyle errorTextStyle = TextStyle(
 );
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Widget firstScreen;
+  const MyApp({super.key, required this.firstScreen});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.orange),
-      home: const LoginScreen(),
+      home: firstScreen,
     );
   }
 }
@@ -82,6 +94,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _usernameController.text.trim(),
     );
     if (password != null && password == _passwordController.text.trim()) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('username', _usernameController.text.trim());
+      await prefs.setBool('isAdmin', isAdmin ?? false);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

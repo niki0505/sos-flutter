@@ -6,6 +6,7 @@ import 'package:frontend/main.dart';
 import 'pendingsos.dart';
 import 'helparrived.dart';
 import 'historydetails.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // REUSABLE COLORS & SPACING
 const Color primaryColor = Color(0xFFFA5246);
@@ -368,7 +369,9 @@ class _HomeScreenState extends State<HomeScreen> {
           centerTitle: false,
           actions: [
             IconButton(
-              onPressed: () {
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),
