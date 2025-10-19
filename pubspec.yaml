@@ -40,6 +40,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   cloud_firestore: ^6.0.3
   firebase_core: ^4.2.0
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +71,10 @@ flutter:
     - assets/exit.png
     - assets/back.png
     - assets/back_red.png
+    - assets/home.png
+    - assets/calendar.png
+    - assets/person.png
+    - assets/gender.png
     - assets/ambulance.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
