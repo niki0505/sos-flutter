@@ -198,23 +198,23 @@ Widget build(BuildContext context) {
           ),
         ],
       ),
-      centerTitle: false,
-      actions: [
-        IconButton(
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => LoginScreen()),
-            );
-          },
-          icon: const Icon(
-            Icons.exit_to_app,
-            color: Colors.redAccent,
-            size: 30,
+       centerTitle: false,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+              );
+            },
+            icon: const Icon(
+              Icons.exit_to_app,
+              color: Colors.redAccent,
+              size: 30,
+            ),
           ),
+        ],
         ),
-      ],
-    ),
         body: SingleChildScrollView(
         padding: const EdgeInsets.all(homePadding),
         child: Column(
@@ -222,13 +222,13 @@ Widget build(BuildContext context) {
           children: const <Widget>[
             SizedBox(height: spacingSmall),
             Text('SOS Requests',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryColor),
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: primaryColor, fontFamily: "REM"),
             ),
             SizedBox(height: spacingSmall),
             SOSRequestsSection(),
             SizedBox(height: spacingMedium),
             Text('History',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryColor),
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: primaryColor, fontFamily: "REM"),
             ),
             SizedBox(height: spacingSmall),
             HistorySortOrderButtons(),
@@ -240,6 +240,7 @@ Widget build(BuildContext context) {
     );
   }
 }
+
 class SOSRequestsSection extends StatelessWidget {
   const SOSRequestsSection({super.key});
 
