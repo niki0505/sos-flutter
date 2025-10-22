@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/adminhome.dart';
 import 'package:frontend/firebase_options.dart';
 import 'package:frontend/services/firestore.dart';
+import 'package:provider/provider.dart';
 import 'signup.dart';
 import 'home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,7 +21,12 @@ void main() async {
   } else {
     firstScreen = const LoginScreen();
   }
-  runApp(MyApp(firstScreen: firstScreen));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AppHistoryManager(),
+      child: MyApp(firstScreen: firstScreen),
+    ),
+  );
 }
 
 // REUSABLE COLORS & SPACING
@@ -90,12 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
     String? password = await fireStoreService.getPasswordByUsername(
       _usernameController.text.trim(),
     );
-    bool? isAdmin = await fireStoreService.getRole(
+    final userData = await fireStoreService.getRole(
       _usernameController.text.trim(),
     );
+    bool? isAdmin = userData?['isAdmin'] as bool?;
+    String? userID = userData?['userID'] as String?;
     if (password != null && password == _passwordController.text.trim()) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('username', _usernameController.text.trim());
+      await prefs.setString('userID', userID!);
       await prefs.setBool('isAdmin', isAdmin ?? false);
       Navigator.pushReplacement(
         context,

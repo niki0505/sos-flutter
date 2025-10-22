@@ -4,20 +4,6 @@ import 'package:frontend/main.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'historydetails.dart';
-import 'main.dart';
-
-//to debug
-void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppHistoryManager(),
-      child: const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: AdminHomeScreen(),
-      ),
-    ),
-  );
-}
 
 // REUSABLE COLORS & SPACING
 const Color primaryColor = Color(0xFFFA5246);
@@ -28,9 +14,10 @@ const double spacingMedium = 20.0;
 
 /// Manages and filters a list of historical entries, notifying listeners of changes.
 class AppHistoryManager extends ChangeNotifier {
-  String _selectedHistoryFilterStatus = 'All'; // 'All', 'Responded', 'Completed', 'Cancelled'
+  String _selectedHistoryFilterStatus =
+      'All'; // 'All', 'Responded', 'Completed', 'Cancelled'
   String _selectedHistorySortOrder = 'Newest'; // 'Newest', 'Oldest'
-  
+
   // HISTORY DEFAULT ENTRIES
   final List<Map<String, dynamic>> _allEntries = <Map<String, dynamic>>[
     {
@@ -66,12 +53,14 @@ class AppHistoryManager extends ChangeNotifier {
       'longitude': 120.9860,
     },
   ];
-    
-    // SOS requests == responded status not sure here if tama
+
+  // SOS requests == responded status not sure here if tama
   List<Map<String, dynamic>> get sosRequests {
     return _allEntries
-        .where((Map<String, dynamic> entry) =>
-            (entry['status'] as String).toLowerCase() == 'responded')
+        .where(
+          (Map<String, dynamic> entry) =>
+              (entry['status'] as String).toLowerCase() == 'responded',
+        )
         .toList();
   }
 
@@ -105,9 +94,11 @@ class AppHistoryManager extends ChangeNotifier {
     // Filter by status first
     if (_selectedHistoryFilterStatus != 'All') {
       filtered = filtered
-          .where((Map<String, dynamic> entry) =>
-              (entry['status'] as String).toLowerCase() ==
-              _selectedHistoryFilterStatus.toLowerCase())
+          .where(
+            (Map<String, dynamic> entry) =>
+                (entry['status'] as String).toLowerCase() ==
+                _selectedHistoryFilterStatus.toLowerCase(),
+          )
           .toList();
     }
 
@@ -130,7 +121,11 @@ class AppHistoryManager extends ChangeNotifier {
   void updateEntryStatus(Map<String, dynamic> entry, String newStatus) {
     if ((entry['status'] as String) == newStatus) return; // No change needed
 
-    final List<String> validStatuses = <String>['Responded', 'Completed', 'Cancelled'];
+    final List<String> validStatuses = <String>[
+      'Responded',
+      'Completed',
+      'Cancelled',
+    ];
     if (validStatuses.contains(newStatus)) {
       final int index = _allEntries.indexOf(entry);
       if (index != -1) {
@@ -169,7 +164,7 @@ class AppHistoryManager extends ChangeNotifier {
 }
 
 class AdminHomeScreen extends StatefulWidget {
-    const AdminHomeScreen({super.key});
+  const AdminHomeScreen({super.key});
 
   @override
   _AdminHomeScreenState createState() => _AdminHomeScreenState();
@@ -177,28 +172,28 @@ class AdminHomeScreen extends StatefulWidget {
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: const Color(0xFFFAFAFA),
-    appBar: AppBar(
-      backgroundColor: Colors.white,
-      elevation: 1,
-      title: Row(
-        children: [
-          Image.asset('assets/home_logo.png', width: 40, height: 40),
-          const SizedBox(width: 10),
-          const Text(
-            'RESQ',
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              color: primaryColor,
-              fontFamily: 'REM',
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        title: Row(
+          children: [
+            Image.asset('assets/home_logo.png', width: 40, height: 40),
+            const SizedBox(width: 10),
+            const Text(
+              'RESQ',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+                fontFamily: 'REM',
+              ),
             ),
-          ),
-        ],
-      ),
-       centerTitle: false,
+          ],
+        ),
+        centerTitle: false,
         actions: [
           IconButton(
             onPressed: () {
@@ -214,21 +209,33 @@ Widget build(BuildContext context) {
             ),
           ),
         ],
-        ),
-        body: SingleChildScrollView(
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(homePadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const <Widget>[
             SizedBox(height: spacingSmall),
-            Text('SOS Requests',
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: primaryColor, fontFamily: "REM"),
+            Text(
+              'SOS Requests',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+                fontFamily: "REM",
+              ),
             ),
             SizedBox(height: spacingSmall),
             SOSRequestsSection(),
             SizedBox(height: spacingMedium),
-            Text('History',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: primaryColor, fontFamily: "REM"),
+            Text(
+              'History',
+              style: TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+                fontFamily: "REM",
+              ),
             ),
             SizedBox(height: spacingSmall),
             HistorySortOrderButtons(),
@@ -246,14 +253,19 @@ class SOSRequestsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-   // Use Provider to access the AppHistoryManager
-    final List<Map<String, dynamic>> sosRequests = context.watch<AppHistoryManager>().sosRequests;
+    // Use Provider to access the AppHistoryManager
+    final List<Map<String, dynamic>> sosRequests = context
+        .watch<AppHistoryManager>()
+        .sosRequests;
 
     if (sosRequests.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24.0),
-          child: Text('No active SOS requests.', style: TextStyle(color: secondaryColor)),
+          child: Text(
+            'No active SOS requests.',
+            style: TextStyle(color: secondaryColor),
+          ),
         ),
       );
     }
@@ -330,7 +342,8 @@ class SOSCard extends StatelessWidget {
                 ),
                 children: <Widget>[
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.example.frontend',
                   ),
                   MarkerLayer(
@@ -361,12 +374,12 @@ class SOSCard extends StatelessWidget {
                   Text(
                     type,
                     style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "REM",
-                        color: primaryColor,
-                      ),
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: "REM",
+                      color: primaryColor,
                     ),
+                  ),
                   Text(
                     date,
                     style: const TextStyle(fontSize: 12, color: secondaryColor),
@@ -380,7 +393,9 @@ class SOSCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Padding(
-                    padding: const EdgeInsets.only(right: 10.0), // Added padding
+                    padding: const EdgeInsets.only(
+                      right: 10.0,
+                    ), // Added padding
                     child: Align(
                       alignment: Alignment.bottomRight,
                       child: ElevatedButton(
@@ -388,14 +403,18 @@ class SOSCard extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute<void>(
-                            builder: (context) => HistoryDetailsScreen(historyEntry: entry),
+                              builder: (context) =>
+                                  HistoryDetailsScreen(historyEntry: entry),
                             ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey[300],
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 12,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(13),
                           ),
@@ -438,14 +457,20 @@ class HistoryFilterButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: isSelected ? primaryColor : Colors.white,
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: primaryColor.withOpacity(0.45), width: 2),
+              border: Border.all(
+                color: primaryColor.withOpacity(0.45),
+                width: 2,
+              ),
             ),
             child: ElevatedButton(
               onPressed: () {
                 onSetSort(label);
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 4,
+                  horizontal: 12,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 backgroundColor: Colors.transparent,
@@ -503,13 +528,18 @@ class HistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> entries = context.watch<AppHistoryManager>().filteredEntries;
+    final List<Map<String, dynamic>> entries = context
+        .watch<AppHistoryManager>()
+        .filteredEntries;
 
     if (entries.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24.0),
-          child: Text('No history entries found for the current filters.', style: TextStyle(color: Colors.grey)),
+          child: Text(
+            'No history entries found for the current filters.',
+            style: TextStyle(color: Colors.grey),
+          ),
         ),
       );
     }
@@ -527,7 +557,6 @@ class HistorySection extends StatelessWidget {
     );
   }
 }
-
 
 class HistoryCard extends StatelessWidget {
   final Map<String, dynamic> entry;
@@ -549,7 +578,7 @@ class HistoryCard extends StatelessWidget {
     final Color statusColor = historyManager.getStatusColor(status);
     final Color statusBorderColor = historyManager.getStatusBorderColor(status);
 
-     return GestureDetector(
+    return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
@@ -578,7 +607,9 @@ class HistoryCard extends StatelessWidget {
               width: 120,
               height: 140,
               decoration: BoxDecoration(
-                border: Border(right: BorderSide(color: primaryColor, width: 2)),
+                border: Border(
+                  right: BorderSide(color: primaryColor, width: 2),
+                ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(10),
                   bottomLeft: Radius.circular(10),
@@ -599,7 +630,8 @@ class HistoryCard extends StatelessWidget {
                   ),
                   children: <Widget>[
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.frontend',
                     ),
                     MarkerLayer(

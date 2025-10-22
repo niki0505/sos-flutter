@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/services/firestore.dart';
 import 'package:lottie/lottie.dart';
 
 // REUSABLE COLORS & SPACING
 const Color primaryColor = Color(0xFFFA5246);
 
 class PendingSOSScreen extends StatefulWidget {
+  final String sosID;
+  const PendingSOSScreen({Key? key, required this.sosID}) : super(key: key);
   @override
   _PendingSOSScreenState createState() => _PendingSOSScreenState();
 }
 
 class _PendingSOSScreenState extends State<PendingSOSScreen>
     with SingleTickerProviderStateMixin {
+  final FirestoreService fireStoreService = FirestoreService();
   double _dragOffset = 0.0;
   final double _cancelThreshold = 100.0;
 
@@ -37,7 +41,8 @@ class _PendingSOSScreenState extends State<PendingSOSScreen>
   }
 
   void _onCancelSOS() {
-    Navigator.pop(context, false); //HIDE BANNER
+    fireStoreService.cancelSOS(widget.sosID);
+    Navigator.pop(context, false);
   }
 
   @override
