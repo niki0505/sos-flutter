@@ -3,17 +3,16 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:frontend/main.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'historydetails.dart';
-import 'main.dart';
 
-//to debug
 void main() {
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppHistoryManager(),
       child: const MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: AdminHomeScreen(),
+        home: SosrequestScreen(),
       ),
     ),
   );
@@ -168,67 +167,68 @@ class AppHistoryManager extends ChangeNotifier {
   }
 }
 
-class AdminHomeScreen extends StatefulWidget {
-    const AdminHomeScreen({super.key});
+class SosrequestScreen extends StatefulWidget {
+  const SosrequestScreen({super.key});
 
   @override
-  _AdminHomeScreenState createState() => _AdminHomeScreenState();
+  State<SosrequestScreen> createState() => _SosrequestScreenState();
 }
 
-class _AdminHomeScreenState extends State<AdminHomeScreen> {
+class _SosrequestScreenState extends State<SosrequestScreen> {
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: const Color(0xFFFAFAFA),
-    appBar: AppBar(
-      backgroundColor: Colors.white,
-      elevation: 1,
-      title: Row(
-        children: [
-          Image.asset('assets/home_logo.png', width: 40, height: 40),
-          const SizedBox(width: 10),
-          const Text(
-            'RESQ',
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              color: primaryColor,
-              fontFamily: 'REM',
-            ),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          title: Row(
+            children: [
+              Image.asset('assets/home_logo.png', width: 40, height: 40),
+              const SizedBox(width: 10),
+              const Text(
+                'RESQ',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                  fontFamily: 'REM',
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-       centerTitle: false,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => LoginScreen()),
-              );
-            },
-            icon: const Icon(
-              Icons.exit_to_app,
-              color: Colors.redAccent,
-              size: 30,
+          centerTitle: false,
+          actions: [
+            IconButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              },
+              icon: const Icon(
+                Icons.exit_to_app,
+                color: Colors.redAccent,
+                size: 30,
+              ),
             ),
-          ),
-        ],
+          ],
         ),
-        body: SingleChildScrollView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(homePadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const <Widget>[
             SizedBox(height: spacingSmall),
             Text('SOS Requests',
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: primaryColor, fontFamily: "REM"),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryColor),
             ),
             SizedBox(height: spacingSmall),
             SOSRequestsSection(),
             SizedBox(height: spacingMedium),
             Text('History',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: primaryColor, fontFamily: "REM"),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryColor),
             ),
             SizedBox(height: spacingSmall),
             HistorySortOrderButtons(),
@@ -240,6 +240,7 @@ Widget build(BuildContext context) {
     );
   }
 }
+
 
 class SOSRequestsSection extends StatelessWidget {
   const SOSRequestsSection({super.key});
