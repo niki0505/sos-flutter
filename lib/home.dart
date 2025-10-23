@@ -433,7 +433,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      //TOP
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
@@ -473,8 +472,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          const SizedBox(height: 10),
-          // BANNER
           if (_showBanner)
             GestureDetector(
               onTap: () async {
@@ -510,178 +507,173 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+          // Scrollable Content
           Expanded(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(homePadding),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // SOS BUTTON & REMINDER
-                  Column(
-                    children: [
-                      GestureDetector(
-                        onTapDown: (_) {
-                          _sosProgress = 0.0;
-                          _sosTimer?.cancel();
-                          const duration = Duration(milliseconds: 30);
-                          _sosTimer = Timer.periodic(duration, (timer) {
-                            if (!mounted) return;
-                            setState(() {
-                              _sosProgress += 30 / 3000;
-                              if (_sosProgress >= 1.0) {
-                                _sosProgress = 1.0;
-                                _sosTimer?.cancel();
-                                _onSOSTapped();
-                              }
-                            });
-                          });
-                        },
-                        onTapUp: (_) {
-                          if (_sosProgress < 1.0) {
+                  const SizedBox(height: 10),
+
+                  // SOS BUTTON
+                  GestureDetector(
+                    onTapDown: (_) {
+                      _sosProgress = 0.0;
+                      _sosTimer?.cancel();
+                      const duration = Duration(milliseconds: 30);
+                      _sosTimer = Timer.periodic(duration, (timer) {
+                        if (!mounted) return;
+                        setState(() {
+                          _sosProgress += 30 / 3000;
+                          if (_sosProgress >= 1.0) {
+                            _sosProgress = 1.0;
                             _sosTimer?.cancel();
-                            setState(() {
-                              _sosProgress = 0.0;
-                            });
+                            _onSOSTapped();
                           }
-                        },
-                        onTapCancel: () {
-                          _sosTimer?.cancel();
-                          setState(() {
-                            _sosProgress = 0.0;
-                          });
-                        },
-                        child: Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 280,
-                                height: 280,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFFDDDB),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Container(
-                                width: 240,
-                                height: 240,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFFC3BE),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Container(
-                                width: 205,
-                                height: 205,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFA5246),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              // CIRCULAR PROGRESS
-                              SizedBox(
-                                width: 220,
-                                height: 220,
-                                child: CircularProgressIndicator(
-                                  value: _sosProgress,
-                                  strokeWidth: 6,
-                                  backgroundColor: Colors.white.withOpacity(
-                                    0.3,
-                                  ),
-                                  valueColor:
-                                      const AlwaysStoppedAnimation<Color>(
-                                        Colors.redAccent,
-                                      ),
-                                ),
-                              ),
-                              const Text(
-                                'SOS',
-                                style: TextStyle(
-                                  fontSize: 70,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  fontFamily: "REM",
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: spacingSmall),
-                      const Text(
-                        'Press & hold SOS button for 3 seconds to ask for help.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: secondaryColor,
-                          fontFamily: 'Quicksand',
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: spacingMedium),
-
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => HelpArrivedScreen(),
+                        });
+                      });
+                    },
+                    onTapUp: (_) {
+                      if (_sosProgress < 1.0) {
+                        _sosTimer?.cancel();
+                        setState(() {
+                          _sosProgress = 0.0;
+                        });
+                      }
+                    },
+                    onTapCancel: () {
+                      _sosTimer?.cancel();
+                      setState(() {
+                        _sosProgress = 0.0;
+                      });
+                    },
+                    child: Center(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 280,
+                            height: 280,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFDDDB),
+                              shape: BoxShape.circle,
                             ),
-                          );
-                        },
-                        child: const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Help Arrived',
-                            style: TextStyle(
-                              fontSize: 25,
-                              fontWeight: FontWeight.bold,
+                          ),
+                          Container(
+                            width: 240,
+                            height: 240,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFC3BE),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Container(
+                            width: 205,
+                            height: 205,
+                            decoration: const BoxDecoration(
                               color: Color(0xFFFA5246),
-                              fontFamily: 'REM',
+                              shape: BoxShape.circle,
                             ),
                           ),
-                        ),
-                      ),
-
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'History',
-                          style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFFA5246),
-                            fontFamily: 'REM',
+                          SizedBox(
+                            width: 220,
+                            height: 220,
+                            child: CircularProgressIndicator(
+                              value: _sosProgress,
+                              strokeWidth: 6,
+                              backgroundColor: Colors.white.withOpacity(0.3),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Colors.redAccent,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(height: spacingSmall),
-
-                      // SCROLLABLE FILTER
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildFilterButton('All'),
-                            _buildFilterButton('Responded'),
-                            _buildFilterButton('Completed'),
-                            _buildFilterButton('Cancelled'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: spacingMedium),
-                    ],
-                  ),
-
-                  // HISTORY LIST
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: _filteredHistory
-                            .map((entry) => _buildHistoryCard(entry: entry))
-                            .toList(),
+                          const Text(
+                            'SOS',
+                            style: TextStyle(
+                              fontSize: 70,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontFamily: "REM",
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: spacingSmall),
+                  const Text(
+                    'Press & hold SOS button for 3 seconds to ask for help.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: secondaryColor,
+                      fontFamily: 'Quicksand',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: spacingMedium),
+
+                  // Help Arrived Button
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HelpArrivedScreen(),
+                        ),
+                      );
+                    },
+                    child: const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Help Arrived',
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                          fontFamily: 'REM',
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'History',
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                        fontFamily: 'REM',
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: spacingSmall),
+
+                  // FILTER BUTTONS
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterButton('All'),
+                        _buildFilterButton('Responded'),
+                        _buildFilterButton('Completed'),
+                        _buildFilterButton('Cancelled'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: spacingMedium),
+
+                  // HISTORY LIST
+                  Column(
+                    children: _filteredHistory
+                        .map((entry) => _buildHistoryCard(entry: entry))
+                        .toList(),
                   ),
                 ],
               ),
