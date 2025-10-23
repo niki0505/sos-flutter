@@ -13,6 +13,24 @@ class HistoryDetailsScreen extends StatelessWidget {
   const HistoryDetailsScreen({super.key, required this.historyEntry});
   final Map<String, dynamic> historyEntry;
 
+  // RESPONDERS DATA
+  final List<Map<String, String>> responders = const [
+    {
+      'name': 'Juan Dela Cruz',
+      'role': 'Rescuer 1',
+      'location': 'Arrived at 19th Street',
+      'time': '2:15 AM',
+      'contact': '09674451254',
+    },
+    {
+      'name': 'Jose Mariano',
+      'role': 'Rescuer 2',
+      'location': 'Arrived at 19th Street',
+      'time': '2:15 AM',
+      'contact': '09674451254',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     final double latitude = historyEntry['latitude'] ?? 0.0;
@@ -45,12 +63,11 @@ class HistoryDetailsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: spacingLarge),
-
             _buildStatusCard(statusColors),
             const SizedBox(height: spacingMedium),
             _buildInfoCard('Type & Address', historyEntry),
             const SizedBox(height: spacingMedium),
-            _buildTimelineCard(historyEntry),
+            _buildRespondersCard(),
             const SizedBox(height: spacingMedium),
             _buildMapSection(latitude, longitude),
           ],
@@ -154,8 +171,8 @@ class HistoryDetailsScreen extends StatelessWidget {
     );
   }
 
-  // TIMELINE
-  Widget _buildTimelineCard(Map<String, dynamic> data) {
+  // RESPONDERS BUILDER
+  Widget _buildRespondersCard() {
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -168,7 +185,7 @@ class HistoryDetailsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Timeline',
+              'Responder/s',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -176,12 +193,61 @@ class HistoryDetailsScreen extends StatelessWidget {
                 color: primaryColor,
               ),
             ),
-            const Divider(thickness: 1, height: 15, color: primaryColor),
+
             const SizedBox(height: 5),
-            _buildTimelineRow('Requested', data['requested']),
-            _buildTimelineRow('Responded', data['responded']),
-            _buildTimelineRow('Arrived', data['arrived']),
-            _buildTimelineRow('Resolved', data['resolved']),
+
+            Column(
+              children: List.generate(responders.length, (index) {
+                final rescuer = responders[index];
+                return Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            rescuer['name']!,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                              fontFamily: 'REM',
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            rescuer['role']!,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: primaryColor,
+                              fontFamily: 'REM',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _infoRow(Icons.location_on, rescuer['location']!),
+                          const SizedBox(height: 10),
+                          _infoRow(
+                            Icons.access_time,
+                            'Time of Arrival: ${rescuer['time']}',
+                          ),
+                          const SizedBox(height: 10),
+                          _infoRow(Icons.phone, rescuer['contact']!),
+                        ],
+                      ),
+                    ),
+
+                    if (index < responders.length - 1)
+                      const Divider(
+                        color: primaryColor,
+                        thickness: 1,
+                        height: 10,
+                      ),
+                  ],
+                );
+              }),
+            ),
           ],
         ),
       ),
@@ -190,86 +256,69 @@ class HistoryDetailsScreen extends StatelessWidget {
 
   // MAP
   Widget _buildMapSection(double latitude, double longitude) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Location',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'REM',
-            color: primaryColor,
-          ),
-        ),
-        const SizedBox(height: spacingMedium),
-        Container(
-          height: 250,
-          decoration: BoxDecoration(
-            border: Border.all(color: primaryColor, width: 2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: FlutterMap(
-              options: MapOptions(
-                initialCenter: LatLng(latitude, longitude),
-                initialZoom: 14,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.none,
-                ),
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: primaryColor, width: 1.5),
+      ),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Location',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'REM',
+                color: primaryColor,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.frontend',
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      width: 40,
-                      height: 40,
-                      point: LatLng(latitude, longitude),
-                      child: const Icon(
-                        Icons.location_pin,
-                        color: Colors.red,
-                        size: 35,
-                      ),
+            ),
+            const SizedBox(height: spacingMedium),
+            Container(
+              height: 250,
+              decoration: BoxDecoration(
+                border: Border.all(color: primaryColor, width: 2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: LatLng(latitude, longitude),
+                    initialZoom: 14,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.none,
+                    ),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.frontend',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          width: 40,
+                          height: 40,
+                          point: LatLng(latitude, longitude),
+                          child: const Icon(
+                            Icons.location_pin,
+                            color: Colors.red,
+                            size: 35,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
-    );
-  }
-
-  // TIMELINE ROW
-  Widget _buildTimelineRow(String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Quicksand',
-              color: primaryColor,
-            ),
-          ),
-          Text(
-            value ?? 'N/A',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              fontFamily: 'Quicksand',
-            ),
-          ),
-        ],
       ),
     );
   }
