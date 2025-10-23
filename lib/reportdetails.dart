@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:frontend/falsereport.dart';
 import 'package:frontend/services/firestore.dart';
+import 'package:frontend/verifiedreport.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:frontend/adminhome.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -72,10 +75,8 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
     final isHeading =
         responderInfo != null && responderInfo['status'] == 'Heading';
-    final isArrivedOrDidNotArrive =
-        responderInfo != null &&
-        (responderInfo['status'] == 'Arrived' ||
-            responderInfo['status'] == 'Did Not Arrive');
+    final isArrived =
+        responderInfo != null && responderInfo['status'] == 'Arrived';
     final isHead = responderInfo != null && responderInfo['isHead'] == true;
 
     return Scaffold(
@@ -93,7 +94,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                   vertical: 10,
                 ),
                 child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => AdminHomeScreen()),
+                  ),
                   child: Image.asset("assets/back_red.png", height: 35),
                 ),
               ),
@@ -508,30 +512,68 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                   width: double.infinity,
                                   height: 48,
                                   child: ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        final responders =
-                                            (report['responders']
-                                                    as List<dynamic>?)
-                                                ?.map(
-                                                  (r) =>
-                                                      r as Map<String, dynamic>,
-                                                )
-                                                .toList() ??
-                                            [];
+                                    onPressed: () async {
+                                      // Show confirm dialog
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text(
+                                            "Confirm Didn't Arrive",
+                                          ),
+                                          content: const Text(
+                                            "Are you sure you didn't arrive to this location?",
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(
+                                                context,
+                                              ).pop(false),
+                                              child: const Text("Cancel"),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.of(
+                                                context,
+                                              ).pop(true),
+                                              child: const Text("Confirm"),
+                                            ),
+                                          ],
+                                        ),
+                                      );
 
-                                        final index = responders.indexWhere(
-                                          (r) => r['userID'] == userID,
+                                      if (confirm == true) {
+                                        await fireStoreService.didntArriveSOS(
+                                          userID,
+                                          sosID,
                                         );
-                                        if (index != -1) {
-                                          responders[index]['status'] =
-                                              'Did Not Arrive';
-                                        }
-                                        report['responders'] = responders;
-                                        responderInfo = responders.firstWhere(
-                                          (r) => r['userID'] == userID,
-                                        );
-                                      });
+                                        setState(() {
+                                          final responders =
+                                              (report['responders']
+                                                      as List<dynamic>?)
+                                                  ?.map(
+                                                    (r) =>
+                                                        r
+                                                            as Map<
+                                                              String,
+                                                              dynamic
+                                                            >,
+                                                  )
+                                                  .toList() ??
+                                              [];
+
+                                          final index = responders.indexWhere(
+                                            (r) => r['userID'] == userID,
+                                          );
+                                          if (index != -1) {
+                                            responders[index]['status'] =
+                                                'Did Not Arrive';
+                                            responders[index].remove('isHead');
+                                          }
+                                          report['responders'] = responders;
+                                          responderInfo = responders.firstWhere(
+                                            (r) => r['userID'] == userID,
+                                          );
+                                        });
+                                      }
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color.fromRGBO(
@@ -564,23 +606,19 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                   ),
                                 ),
 
-                              if (isArrivedOrDidNotArrive && isHead)
+                              if (isArrived && isHead)
                                 SizedBox(
                                   width: double.infinity,
                                   height: 48,
                                   child: ElevatedButton(
                                     onPressed: () {
-                                      ScaffoldMessenger.of(
+                                      Navigator.push(
                                         context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Heading to location...",
-                                          ),
+                                        MaterialPageRoute<void>(
+                                          builder: (context) =>
+                                              VerifiedReportPage(sosID: sosID),
                                         ),
                                       );
-                                      // Optionally call your headingSOS() function here
-                                      // await FirestoreService().headingSOS(userID, report['docID']);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color.fromRGBO(
@@ -613,23 +651,19 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                   ),
                                 ),
                               const SizedBox(height: 20),
-                              if (isArrivedOrDidNotArrive && isHead)
+                              if (isArrived && isHead)
                                 SizedBox(
                                   width: double.infinity,
                                   height: 48,
                                   child: ElevatedButton(
                                     onPressed: () {
-                                      ScaffoldMessenger.of(
+                                      Navigator.push(
                                         context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Heading to location...",
-                                          ),
+                                        MaterialPageRoute<void>(
+                                          builder: (context) =>
+                                              FalseReportPage(sosID: sosID),
                                         ),
                                       );
-                                      // Optionally call your headingSOS() function here
-                                      // await FirestoreService().headingSOS(userID, report['docID']);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color.fromRGBO(

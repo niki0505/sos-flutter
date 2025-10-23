@@ -21,12 +21,13 @@ void main() async {
   } else {
     firstScreen = const LoginScreen();
   }
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppHistoryManager(),
-      child: MyApp(firstScreen: firstScreen),
-    ),
-  );
+  // runApp(
+  //   ChangeNotifierProvider(
+  //     create: (_) => AppHistoryManager(entries: completedReports ?? []),
+  //     child: MyApp(firstScreen: firstScreen),
+  //   ),
+  // );
+  runApp(MyApp(firstScreen: firstScreen));
 }
 
 // REUSABLE COLORS & SPACING

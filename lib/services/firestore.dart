@@ -124,7 +124,10 @@ class FirestoreService {
       final docRef = sos.doc(sosID);
       final docSnapshot = await docRef.get();
       if (docSnapshot.exists) {
-        await docRef.update({'status': 'Cancelled'});
+        await docRef.update({
+          'status': 'Cancelled',
+          'completedAt': Timestamp.now(),
+        });
         return true;
       } else {
         return false;
@@ -216,8 +219,6 @@ class FirestoreService {
       updatedResponders.add({
         'userID': userID,
         'status': 'Heading',
-        'headingAt': Timestamp.now(),
-        'arrivedAt': null,
         'isHead': !hasAnyHeading,
       });
     }
@@ -251,9 +252,129 @@ class FirestoreService {
     await sos.doc(sosID).update({'responders': updatedResponders});
   }
 
-  // READ
+  // DID NOT ARRIVE SOS
+  Future<void> didntArriveSOS(String? userID, String sosID) async {
+    final sosDoc = await sos.doc(sosID).get();
 
-  // UPDATE
+    if (!sosDoc.exists) return;
 
-  // DELETE
+    // Cast to Map<String, dynamic>
+    final currentData = sosDoc.data() as Map<String, dynamic>;
+    final List<dynamic> responders = currentData['responders'] ?? [];
+
+    // Update existing responder if exists
+    final updatedResponders = responders.map((r) {
+      if (r['userID'] == userID) {
+        final updated = {...r, 'status': 'Did Not Arrive'};
+        updated.remove('isHead');
+        return updated;
+      }
+      return r;
+    }).toList();
+    await sos.doc(sosID).update({'responders': updatedResponders});
+  }
+
+  // VERIFY SOS
+  Future<void> verifySOS(String sosID, String reportDetails) async {
+    final sosDoc = await sos.doc(sosID).get();
+
+    if (!sosDoc.exists) return;
+
+    final currentData = sosDoc.data() as Map<String, dynamic>;
+    final updateData = {
+      if (currentData['status'] == 'Ongoing') 'status': 'Resolved',
+      'reportdetails': reportDetails,
+      'completedAt': Timestamp.now(),
+    };
+
+    await sos.doc(sosID).update(updateData);
+  }
+
+  // FALSE ALARM SOS
+  Future<void> falseAlarmSOS(String sosID, String reportDetails) async {
+    final sosDoc = await sos.doc(sosID).get();
+
+    if (!sosDoc.exists) return;
+
+    final currentData = sosDoc.data() as Map<String, dynamic>;
+    final updateData = {
+      if (currentData['status'] == 'Ongoing') 'status': 'False Alarm',
+      'reportdetails': reportDetails,
+      'completedAt': Timestamp.now(),
+    };
+
+    await sos.doc(sosID).update(updateData);
+  }
+
+  // FETCH COMPLETED REPORTS
+  Future<List<Map<String, dynamic>>> fetchCompletedReports() async {
+    try {
+      final querySnapshot = await sos
+          .where('status', whereIn: ['Resolved', 'False Alarm'])
+          .get();
+
+      final reports = await Future.wait(
+        querySnapshot.docs.map((doc) async {
+          final data = doc.data() as Map<String, dynamic>;
+          data['docID'] = doc.id;
+
+          // Fetch corresponding user info
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(data['userID'])
+              .get();
+
+          if (userDoc.exists) {
+            data['user'] = userDoc.data();
+          }
+
+          final GeoPoint loc = data['location'];
+          final address = await getAddressFromCoordinates(
+            loc.latitude,
+            loc.longitude,
+          );
+          data['address'] = address;
+
+          return data;
+        }),
+      );
+
+      return reports;
+    } catch (e) {
+      print('Error fetching completed reports: $e');
+      return [];
+    }
+  }
+
+  // FETCH SOS HISTORY
+  Future<List<Map<String, dynamic>>> getSOSHistory(String userID) async {
+    try {
+      final querySnapshot = await sos
+          .where('userID', isEqualTo: userID)
+          .where('status', whereIn: ['Cancelled', 'False Alarm', 'Resolved'])
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        List<Map<String, dynamic>> reports = [];
+
+        for (var doc in querySnapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          data['docID'] = doc.id;
+          final GeoPoint loc = data['location'];
+          final address = await getAddressFromCoordinates(
+            loc.latitude,
+            loc.longitude,
+          );
+          data['address'] = address;
+          reports.add(data);
+        }
+
+        return reports;
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
+    }
+  }
 }

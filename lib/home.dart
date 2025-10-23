@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:frontend/services/firestore.dart';
@@ -25,11 +26,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService fireStoreService = FirestoreService();
   Map<String, dynamic>? ongoingSOS;
+  List<Map<String, dynamic>> completedReports = [];
   String? userID;
   bool _showBanner = false;
   String _dots = '';
   Timer? _dotTimer;
   String _selectedFilter = 'All';
+  bool isLoading = true;
 
   // SOS CIRCLE PROGRESS
   double _sosProgress = 0.0;
@@ -49,6 +52,19 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     _checkOngoingSOS();
+    fetchCompletedReports();
+  }
+
+  Future<void> fetchCompletedReports() async {
+    final result = await fireStoreService.getSOSHistory(userID!);
+
+    if (mounted) {
+      setState(() {
+        completedReports = result;
+        isLoading = false;
+      });
+      print('Completed Reports fetched: $completedReports');
+    }
   }
 
   // Check ongoing SOS for current user
@@ -115,38 +131,10 @@ class _HomeScreenState extends State<HomeScreen> {
     fireStoreService.addSOS(userID, currentPosition);
   }
 
-  // HISTORY DEFAULT ENTRIES
-  final List<Map<String, dynamic>> _historyEntries = [
-    {
-      'type': 'Medical',
-      'date': '10/18/2025',
-      'description': 'Blk 123 Street. Aniban 2',
-      'status': 'Completed',
-      'latitude': 14.5995,
-      'longitude': 120.9842,
-    },
-    {
-      'type': 'Fire',
-      'date': '10/16/2025',
-      'description': 'Blk 123 Street. Aniban 2',
-      'status': 'Responded',
-      'latitude': 14.6190,
-      'longitude': 120.9820,
-    },
-    {
-      'type': 'Earthquake',
-      'date': '10/14/2025',
-      'description': 'Blk 123 Street. Aniban 2',
-      'status': 'Cancelled',
-      'latitude': 14.6190,
-      'longitude': 120.9820,
-    },
-  ];
-
   // FILTERED DEFAULT HISTORY ENTRIES
   List<Map<String, dynamic>> get _filteredHistory {
-    if (_selectedFilter == 'All') return _historyEntries;
-    return _historyEntries
+    if (_selectedFilter == 'All') return completedReports;
+    return completedReports
         .where(
           (entry) =>
               entry['status'].toString().toLowerCase() ==
@@ -250,12 +238,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // HISTORY CARD
   Widget _buildHistoryCard({required Map<String, dynamic> entry}) {
-    String type = entry['type'];
-    String date = entry['date'];
-    String description = entry['description'];
-    String status = entry['status'];
-    double latitude = entry['latitude'];
-    double longitude = entry['longitude'];
+    String date = entry['completedAt'] != null
+        ? (entry['completedAt'] as Timestamp).toDate().toString().substring(
+            0,
+            16,
+          )
+        : 'Unknown';
+    String address = entry['address'] ?? 'No address';
+    String status = entry['status'] ?? 'Pending';
+    final GeoPoint loc = entry['location'] as GeoPoint;
+    double latitude = loc.latitude?.toDouble() ?? 0.0;
+    double longitude = loc.longitude?.toDouble() ?? 0.0;
 
     Color borderColor = primaryColor;
     Color statusColor;
@@ -263,11 +256,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // STATUS COLORS
     switch (status.toLowerCase()) {
-      case 'completed':
+      case 'resolved':
         statusColor = const Color(0xFF00BA00).withOpacity(0.50);
         statusBorderColor = const Color(0xFF00BA00);
         break;
-      case 'responded':
+      case 'false alarm':
         statusColor = const Color(0xFFF0D210).withOpacity(0.60);
         statusBorderColor = const Color(0xFFE3C610);
         break;
@@ -363,15 +356,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      type,
-                      style: const TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "REM",
-                        color: primaryColor,
-                      ),
-                    ),
                     const SizedBox(height: 2),
                     Text(
                       date,
@@ -384,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      description,
+                      address,
                       style: const TextStyle(
                         fontSize: 13,
                         color: secondaryColor,
@@ -434,6 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 1,
         title: Row(
@@ -518,82 +503,104 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // SOS BUTTON
                   GestureDetector(
-                    onTapDown: (_) {
-                      _sosProgress = 0.0;
-                      _sosTimer?.cancel();
-                      const duration = Duration(milliseconds: 30);
-                      _sosTimer = Timer.periodic(duration, (timer) {
-                        if (!mounted) return;
-                        setState(() {
-                          _sosProgress += 30 / 3000;
-                          if (_sosProgress >= 1.0) {
-                            _sosProgress = 1.0;
+                    onTapDown: _showBanner
+                        ? null
+                        : (_) {
+                            _sosProgress = 0.0;
                             _sosTimer?.cancel();
-                            _onSOSTapped();
-                          }
-                        });
-                      });
-                    },
-                    onTapUp: (_) {
-                      if (_sosProgress < 1.0) {
-                        _sosTimer?.cancel();
-                        setState(() {
-                          _sosProgress = 0.0;
-                        });
-                      }
-                    },
-                    onTapCancel: () {
-                      _sosTimer?.cancel();
-                      setState(() {
-                        _sosProgress = 0.0;
-                      });
-                    },
+                            const duration = Duration(milliseconds: 30);
+                            _sosTimer = Timer.periodic(duration, (timer) {
+                              if (!mounted) return;
+                              setState(() {
+                                _sosProgress += 30 / 3000;
+                                if (_sosProgress >= 1.0) {
+                                  _sosProgress = 1.0;
+                                  _sosTimer?.cancel();
+                                  _onSOSTapped();
+                                }
+                              });
+                            });
+                          },
+                    onTapUp: _showBanner
+                        ? null
+                        : (_) {
+                            if (_sosProgress < 1.0) {
+                              _sosTimer?.cancel();
+                              setState(() {
+                                _sosProgress = 0.0;
+                              });
+                            }
+                          },
+                    onTapCancel: _showBanner
+                        ? null
+                        : () {
+                            _sosTimer?.cancel();
+                            setState(() {
+                              _sosProgress = 0.0;
+                            });
+                          },
                     child: Center(
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
+                          // OUTER CIRCLE
                           Container(
                             width: 280,
                             height: 280,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFDDDB),
+                            decoration: BoxDecoration(
+                              color: _showBanner
+                                  ? Colors.grey[400]
+                                  : const Color(0xFFFFDDDB),
                               shape: BoxShape.circle,
                             ),
                           ),
+                          // MIDDLE CIRCLE
                           Container(
                             width: 240,
                             height: 240,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFC3BE),
+                            decoration: BoxDecoration(
+                              color: _showBanner
+                                  ? Colors.grey[500]
+                                  : const Color(0xFFFFC3BE),
                               shape: BoxShape.circle,
                             ),
                           ),
+                          // INNER CIRCLE
                           Container(
                             width: 205,
                             height: 205,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFA5246),
+                            decoration: BoxDecoration(
+                              color: _showBanner
+                                  ? Colors.grey
+                                  : const Color(0xFFFA5246),
                               shape: BoxShape.circle,
                             ),
                           ),
+                          // PROGRESS INDICATOR
                           SizedBox(
                             width: 220,
                             height: 220,
                             child: CircularProgressIndicator(
                               value: _sosProgress,
                               strokeWidth: 6,
-                              backgroundColor: Colors.white.withOpacity(0.3),
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                Colors.redAccent,
+                              backgroundColor: _showBanner
+                                  ? Colors.grey[300]
+                                  : Colors.white.withOpacity(0.3),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                _showBanner
+                                    ? Colors.grey[700]!
+                                    : Colors.redAccent,
                               ),
                             ),
                           ),
-                          const Text(
+                          Text(
                             'SOS',
                             style: TextStyle(
                               fontSize: 70,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: _showBanner
+                                  ? Colors.grey[700]
+                                  : Colors.white,
                               fontFamily: "REM",
                             ),
                           ),
