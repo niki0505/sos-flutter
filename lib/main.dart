@@ -12,11 +12,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final prefs = await SharedPreferences.getInstance();
-  final String? username = prefs.getString('username');
+  final String? userID = prefs.getString('userID');
   final bool? isAdmin = prefs.getBool('isAdmin');
 
   Widget firstScreen;
-  if (username != null) {
+  if (userID != null) {
     firstScreen = isAdmin == true ? AdminHomeScreen() : HomeScreen();
   } else {
     firstScreen = const LoginScreen();

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:geocoding/geocoding.dart';
 
 class FirestoreService {
   // get collection of sos
@@ -131,6 +132,123 @@ class FirestoreService {
     } catch (e) {
       return false;
     }
+  }
+
+  // FETCH PENDING AND ONGOING REPORTS
+  Future<List<Map<String, dynamic>>> fetchPendingReports() async {
+    try {
+      final querySnapshot = await sos
+          .where('status', whereIn: ['Pending', 'Ongoing'])
+          .get();
+
+      final reports = await Future.wait(
+        querySnapshot.docs.map((doc) async {
+          final data = doc.data() as Map<String, dynamic>;
+          data['docID'] = doc.id;
+
+          // Fetch corresponding user info
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(data['userID'])
+              .get();
+
+          if (userDoc.exists) {
+            data['user'] = userDoc.data();
+          }
+
+          final GeoPoint loc = data['location'];
+          final address = await getAddressFromCoordinates(
+            loc.latitude,
+            loc.longitude,
+          );
+          data['address'] = address;
+
+          return data;
+        }),
+      );
+
+      return reports;
+    } catch (e) {
+      print('Error fetching pending reports: $e');
+      return [];
+    }
+  }
+
+  // TRANSLATE COORDINATES TO READABLE ADDRESS
+  Future<String> getAddressFromCoordinates(double lat, double lon) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+      Placemark place = placemarks.first;
+
+      return "${place.street}, ${place.subLocality}, ${place.locality}, "
+          "${place.administrativeArea}, ${place.country}";
+    } catch (e) {
+      print("Error in reverse geocoding: $e");
+      return "Unknown location";
+    }
+  }
+
+  // HEADING SOS
+  Future<void> headingSOS(String? userID, String sosID) async {
+    final sosDoc = await sos.doc(sosID).get();
+
+    if (!sosDoc.exists) return;
+
+    // Cast to Map<String, dynamic>
+    final currentData = sosDoc.data() as Map<String, dynamic>;
+    final List<dynamic> responders = currentData['responders'] ?? [];
+    bool userFound = false;
+
+    // Check if anyone has already headed
+    final hasAnyHeading = responders.any((r) => r['status'] == 'Heading');
+
+    // Update existing responder if exists
+    final updatedResponders = responders.map((r) {
+      if (r['userID'] == userID) {
+        userFound = true;
+        return {...r, 'status': 'Heading', 'arrivedAt': null};
+      }
+      return r;
+    }).toList();
+
+    // If not found, add new responder
+    if (!userFound) {
+      updatedResponders.add({
+        'userID': userID,
+        'status': 'Heading',
+        'headingAt': Timestamp.now(),
+        'arrivedAt': null,
+        'isHead': !hasAnyHeading,
+      });
+    }
+
+    // Update status if Pending
+    final updateData = {
+      'responders': updatedResponders,
+      if (currentData['status'] == 'Pending') 'status': 'Ongoing',
+    };
+
+    await sos.doc(sosID).update(updateData);
+  }
+
+  // ARRIVED SOS
+  Future<void> arrivedSOS(String? userID, String sosID) async {
+    final sosDoc = await sos.doc(sosID).get();
+
+    if (!sosDoc.exists) return;
+
+    // Cast to Map<String, dynamic>
+    final currentData = sosDoc.data() as Map<String, dynamic>;
+    final List<dynamic> responders = currentData['responders'] ?? [];
+
+    // Update existing responder if exists
+    final updatedResponders = responders.map((r) {
+      if (r['userID'] == userID) {
+        return {...r, 'status': 'Arrived', 'arrivedAt': Timestamp.now()};
+      }
+      return r;
+    }).toList();
+    await sos.doc(sosID).update({'responders': updatedResponders});
   }
 
   // READ

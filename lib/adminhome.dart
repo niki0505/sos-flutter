@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:frontend/main.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'historydetails.dart';
+import 'package:frontend/services/firestore.dart';
+import 'reportdetails.dart';
 
 // REUSABLE COLORS & SPACING
 const Color primaryColor = Color(0xFFFA5246);
@@ -171,6 +174,26 @@ class AdminHomeScreen extends StatefulWidget {
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  final FirestoreService fireStoreService = FirestoreService();
+  List<Map<String, dynamic>> pendingReports = [];
+  bool isLoading = true;
+  @override
+  void initState() {
+    super.initState();
+    fetchPendingReports();
+  }
+
+  Future<void> fetchPendingReports() async {
+    final result = await fireStoreService.fetchPendingReports();
+
+    if (mounted) {
+      setState(() {
+        pendingReports = result;
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -214,7 +237,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         padding: const EdgeInsets.all(homePadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const <Widget>[
+          children: <Widget>[
             SizedBox(height: spacingSmall),
             Text(
               'SOS Requests',
@@ -226,7 +249,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
             SizedBox(height: spacingSmall),
-            SOSRequestsSection(),
+            SOSRequestsSection(pendingReports: pendingReports),
             SizedBox(height: spacingMedium),
             Text(
               'History',
@@ -249,16 +272,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 }
 
 class SOSRequestsSection extends StatelessWidget {
-  const SOSRequestsSection({super.key});
+  final List<Map<String, dynamic>> pendingReports;
+  const SOSRequestsSection({required this.pendingReports, super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Use Provider to access the AppHistoryManager
-    final List<Map<String, dynamic>> sosRequests = context
-        .watch<AppHistoryManager>()
-        .sosRequests;
-
-    if (sosRequests.isEmpty) {
+    if (pendingReports.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24.0),
@@ -271,14 +290,33 @@ class SOSRequestsSection extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 250, // Updated height
+      height: 250,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: sosRequests.length,
-        itemBuilder: (BuildContext context, int index) {
+        itemCount: pendingReports.length,
+        itemBuilder: (context, index) {
+          final sos = pendingReports[index];
+          final GeoPoint loc = sos['location'];
+          final user = sos['user'] ?? {};
+
           return Padding(
             padding: const EdgeInsets.only(right: 12.0),
-            child: SOSCard(entry: sosRequests[index]),
+            child: SOSCard(
+              entry: {
+                'name': '${user['firstname'] ?? ''} ${user['lastname'] ?? ''}'
+                    .trim(),
+                'date':
+                    sos['requestedAt']?.toDate().toString().substring(0, 16) ??
+                    'Unknown',
+                'address': sos['address'] ?? 'No address provided',
+                'latitude': loc.latitude,
+                'longitude': loc.longitude,
+                'status': sos['status'],
+                'user': user,
+                'sosID': sos['docID'],
+                'responders': sos['responders'],
+              },
+            ),
           );
         },
       ),
@@ -294,9 +332,9 @@ class SOSCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color borderColor = Theme.of(context).primaryColor;
 
-    final String type = entry['type'] as String;
+    final String name = entry['name'] as String;
     final String date = entry['date'] as String;
-    final String description = entry['description'] as String;
+    final String address = entry['address'] as String;
     final double latitude = entry['latitude'] as double;
     final double longitude = entry['longitude'] as double;
 
@@ -372,9 +410,9 @@ class SOSCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    type,
+                    name,
                     style: const TextStyle(
-                      fontSize: 30,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       fontFamily: "REM",
                       color: primaryColor,
@@ -386,7 +424,7 @@ class SOSCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    description,
+                    address,
                     style: const TextStyle(fontSize: 12, color: Colors.black54),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -400,11 +438,12 @@ class SOSCard extends StatelessWidget {
                       alignment: Alignment.bottomRight,
                       child: ElevatedButton(
                         onPressed: () {
+                          print("Sending report: $entry");
                           Navigator.push(
                             context,
                             MaterialPageRoute<void>(
                               builder: (context) =>
-                                  HistoryDetailsScreen(historyEntry: entry),
+                                  ReportDetailsPage(pendingReport: entry),
                             ),
                           );
                         },
