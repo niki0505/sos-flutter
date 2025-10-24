@@ -23,13 +23,17 @@ class FirestoreService {
     DateTime birthdateParsed = DateFormat('MM-dd-yyyy').parse(birthdate);
 
     int age = _calculateAge(birthdateParsed);
+    String formattedMobileNum = mobilenum.trim();
+    if (formattedMobileNum.startsWith('63')) {
+      formattedMobileNum = formattedMobileNum.replaceFirst('63', '0');
+    }
     return users.add({
       'firstname': firstname,
       'lastname': lastname,
       'sex': sex,
       'birthdate': birthdate,
       'age': age,
-      'mobilenum': mobilenum,
+      'mobilenum': formattedMobileNum,
       'username': username,
       'password': password,
       'isAdmin': false,
@@ -109,6 +113,35 @@ class FirestoreService {
         final doc = querySnapshot.docs.first;
         final data = doc.data() as Map<String, dynamic>;
         data['docID'] = doc.id;
+
+        // Get responders array (if any)
+        final List responders = data['responders'] ?? [];
+
+        // Populate responder user details
+        List<Map<String, dynamic>> populatedResponders = [];
+
+        for (var responder in responders) {
+          final responderUserID = responder['userID'];
+
+          if (responderUserID != null) {
+            final userDoc = await users.doc(responderUserID).get();
+
+            if (userDoc.exists) {
+              final userData = userDoc.data() as Map<String, dynamic>;
+              responder['userDetails'] = {
+                'firstname': userData['firstname'],
+                'lastname': userData['lastname'],
+                'mobilenum': userData['mobilenum'],
+              };
+            } else {
+              responder['userDetails'] = null;
+            }
+          }
+
+          populatedResponders.add(Map<String, dynamic>.from(responder));
+        }
+
+        data['responders'] = populatedResponders;
         return data;
       } else {
         return null;
@@ -306,38 +339,82 @@ class FirestoreService {
     await sos.doc(sosID).update(updateData);
   }
 
-  // FETCH COMPLETED REPORTS
   Future<List<Map<String, dynamic>>> fetchCompletedReports() async {
     try {
       final querySnapshot = await sos
           .where('status', whereIn: ['Resolved', 'False Alarm'])
           .get();
 
-      final reports = await Future.wait(
-        querySnapshot.docs.map((doc) async {
-          final data = doc.data() as Map<String, dynamic>;
-          data['docID'] = doc.id;
+      final List<Map<String, dynamic>> reports = [];
 
-          // Fetch corresponding user info
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(data['userID'])
-              .get();
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['docID'] = doc.id;
 
-          if (userDoc.exists) {
-            data['user'] = userDoc.data();
-          }
+        // Fetch corresponding user info
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(data['userID'])
+            .get();
 
+        if (userDoc.exists) {
+          data['user'] = userDoc.data();
+        }
+
+        // Get address from location
+        if (data['location'] is GeoPoint) {
           final GeoPoint loc = data['location'];
           final address = await getAddressFromCoordinates(
             loc.latitude,
             loc.longitude,
           );
           data['address'] = address;
+        } else {
+          data['address'] = 'Unknown location';
+        }
 
-          return data;
-        }),
-      );
+        // Populate responders with userDetails
+        final List responders = data['responders'] ?? [];
+
+        final populatedResponders = await Future.wait(
+          responders.map((responder) async {
+            final responderUserID = (responder['userID'] as String?)?.trim();
+            Map<String, dynamic> newResponder = Map<String, dynamic>.from(
+              responder,
+            );
+
+            if (responderUserID != null && responderUserID.isNotEmpty) {
+              final responderDoc = await users.doc(responderUserID).get();
+              if (responderDoc.exists) {
+                final responderData =
+                    responderDoc.data() as Map<String, dynamic>;
+                newResponder['userDetails'] = {
+                  'firstname': responderData['firstname'] ?? 'Unknown',
+                  'lastname': responderData['lastname'] ?? '',
+                  'mobilenum': responderData['mobilenum'] ?? '',
+                };
+              } else {
+                newResponder['userDetails'] = {
+                  'firstname': 'Unknown',
+                  'lastname': '',
+                  'mobilenum': '',
+                };
+              }
+            } else {
+              newResponder['userDetails'] = {
+                'firstname': 'Unknown',
+                'lastname': '',
+                'mobilenum': '',
+              };
+            }
+
+            return newResponder;
+          }).toList(),
+        );
+
+        data['responders'] = populatedResponders; // ✅ replace the array
+        reports.add(data);
+      }
 
       return reports;
     } catch (e) {
@@ -346,7 +423,6 @@ class FirestoreService {
     }
   }
 
-  // FETCH SOS HISTORY
   Future<List<Map<String, dynamic>>> getSOSHistory(String userID) async {
     try {
       final querySnapshot = await sos
@@ -354,26 +430,72 @@ class FirestoreService {
           .where('status', whereIn: ['Cancelled', 'False Alarm', 'Resolved'])
           .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        List<Map<String, dynamic>> reports = [];
+      if (querySnapshot.docs.isEmpty) return [];
 
-        for (var doc in querySnapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          data['docID'] = doc.id;
+      List<Map<String, dynamic>> reports = [];
+
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['docID'] = doc.id;
+
+        // Convert location to address
+        if (data['location'] is GeoPoint) {
           final GeoPoint loc = data['location'];
           final address = await getAddressFromCoordinates(
             loc.latitude,
             loc.longitude,
           );
           data['address'] = address;
-          reports.add(data);
+        } else {
+          data['address'] = 'Unknown location';
         }
 
-        return reports;
-      } else {
-        return [];
+        // Populate responders with userDetails
+        final List responders = data['responders'] ?? [];
+
+        final populatedResponders = await Future.wait(
+          responders.map((responder) async {
+            final responderUserID = (responder['userID'] as String?)?.trim();
+            Map<String, dynamic> newResponder = Map<String, dynamic>.from(
+              responder,
+            );
+
+            if (responderUserID != null && responderUserID.isNotEmpty) {
+              final responderDoc = await users.doc(responderUserID).get();
+              if (responderDoc.exists) {
+                final responderData =
+                    responderDoc.data() as Map<String, dynamic>;
+                newResponder['userDetails'] = {
+                  'firstname': responderData['firstname'] ?? 'Unknown',
+                  'lastname': responderData['lastname'] ?? '',
+                  'mobilenum': responderData['mobilenum'] ?? '',
+                };
+              } else {
+                newResponder['userDetails'] = {
+                  'firstname': 'Unknown',
+                  'lastname': '',
+                  'mobilenum': '',
+                };
+              }
+            } else {
+              newResponder['userDetails'] = {
+                'firstname': 'Unknown',
+                'lastname': '',
+                'mobilenum': '',
+              };
+            }
+
+            return newResponder;
+          }).toList(),
+        );
+
+        data['responders'] = populatedResponders; // ✅ replace the array
+        reports.add(data);
       }
+
+      return reports;
     } catch (e) {
+      print('Error fetching SOS history: $e');
       return [];
     }
   }

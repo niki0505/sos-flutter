@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _dotTimer;
   String _selectedFilter = 'All';
   bool isLoading = true;
+  bool? isAdmin;
 
   // SOS CIRCLE PROGRESS
   double _sosProgress = 0.0;
@@ -49,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       userID = prefs.getString('userID');
+      isAdmin = prefs.getBool('isAdmin');
     });
 
     _checkOngoingSOS();
@@ -185,7 +187,10 @@ class _HomeScreenState extends State<HomeScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PendingSOSScreen(sosID: ongoingSOS?['docID']),
+          builder: (context) => PendingSOSScreen(
+            sosID: ongoingSOS?['docID'],
+            ongoingSOS: ongoingSOS,
+          ),
         ),
       );
     });
@@ -237,7 +242,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // HISTORY CARD
-  Widget _buildHistoryCard({required Map<String, dynamic> entry}) {
+  Widget _buildHistoryCard({
+    required Map<String, dynamic> entry,
+    required int index,
+  }) {
     String date = entry['completedAt'] != null
         ? (entry['completedAt'] as Timestamp).toDate().toString().substring(
             0,
@@ -275,10 +283,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return GestureDetector(
       onTap: () {
+        print('Tapped SOS entry: ${_filteredHistory[index]}');
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HistoryDetailsScreen(historyEntry: entry),
+            builder: (context) => HistoryDetailsScreen(
+              historyEntry: _filteredHistory[index],
+              isAdmin: isAdmin!,
+            ),
           ),
         );
       },
@@ -463,8 +475,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        PendingSOSScreen(sosID: ongoingSOS?['docID']),
+                    builder: (context) => PendingSOSScreen(
+                      sosID: ongoingSOS?['docID'],
+                      ongoingSOS: ongoingSOS,
+                    ),
                   ),
                 );
                 if (result == false) {
@@ -678,9 +692,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // HISTORY LIST
                   Column(
-                    children: _filteredHistory
-                        .map((entry) => _buildHistoryCard(entry: entry))
-                        .toList(),
+                    children: List.generate(
+                      _filteredHistory.length,
+                      (index) => _buildHistoryCard(
+                        entry: _filteredHistory[index],
+                        index: index,
+                      ),
+                    ),
                   ),
                 ],
               ),

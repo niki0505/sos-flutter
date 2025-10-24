@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // REUSABLE COLORS & SPACING
 const Color primaryColor = Color(0xFFFA5246);
@@ -10,31 +13,26 @@ const double spacingMedium = 10.0;
 const double spacingLarge = 20.0;
 
 class HistoryDetailsScreen extends StatelessWidget {
-  const HistoryDetailsScreen({super.key, required this.historyEntry});
+  const HistoryDetailsScreen({
+    super.key,
+    required this.historyEntry,
+    required this.isAdmin,
+  });
   final Map<String, dynamic> historyEntry;
+  final bool isAdmin;
 
-  // RESPONDERS DATA
-  final List<Map<String, String>> responders = const [
-    {
-      'name': 'Juan Dela Cruz',
-      'role': 'Rescuer 1',
-      'location': 'Arrived at 19th Street',
-      'time': '2:15 AM',
-      'contact': '09674451254',
-    },
-    {
-      'name': 'Jose Mariano',
-      'role': 'Rescuer 2',
-      'location': 'Arrived at 19th Street',
-      'time': '2:15 AM',
-      'contact': '09674451254',
-    },
-  ];
+  List<dynamic> get responders {
+    final allResponders = historyEntry['responders'] ?? [];
+    return allResponders
+        .where((responder) => responder['status'] == 'Arrived')
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final double latitude = historyEntry['latitude'] ?? 0.0;
-    final double longitude = historyEntry['longitude'] ?? 0.0;
+    final GeoPoint loc = historyEntry['location'] as GeoPoint;
+    double latitude = loc.latitude?.toDouble() ?? 0.0;
+    double longitude = loc.longitude?.toDouble() ?? 0.0;
 
     final statusColors = _getStatusColors(historyEntry['status']);
 
@@ -79,12 +77,12 @@ class HistoryDetailsScreen extends StatelessWidget {
   // STATUS COLORS
   Map<String, Color> _getStatusColors(String? status) {
     switch ((status ?? '').toLowerCase()) {
-      case 'completed':
+      case 'resolved':
         return {
           'bg': const Color(0xFF00BA00).withOpacity(0.5),
           'border': const Color(0xFF00BA00),
         };
-      case 'responded':
+      case 'false alarm':
         return {
           'bg': const Color(0xFFF0D210).withOpacity(0.6),
           'border': const Color(0xFFE3C610),
@@ -149,6 +147,9 @@ class HistoryDetailsScreen extends StatelessWidget {
 
   // INFO BUILDER
   Widget _buildInfoCard(String title, Map<String, dynamic> data) {
+    Timestamp completedAt = data['completedAt'];
+    DateTime dateTime = completedAt.toDate();
+    String formattedDate = DateFormat('MMMM d, yyyy').format(dateTime);
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -160,11 +161,22 @@ class HistoryDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _infoRow(Icons.warning_amber_rounded, data['type'] ?? 'N/A'),
+            if (isAdmin) ...[
+              _infoRow(
+                Icons.person,
+                '${data['user']['firstname'] ?? ''} ${data['user']['lastname'] ?? ''}'
+                        .trim()
+                        .isNotEmpty
+                    ? '${data['user']['firstname']} ${data['user']['lastname']}'
+                    : 'N/A',
+              ),
+              const SizedBox(height: spacingMedium),
+            ],
+            _infoRow(Icons.calendar_today, formattedDate ?? 'N/A'),
             const SizedBox(height: spacingMedium),
-            _infoRow(Icons.calendar_today, data['date'] ?? 'N/A'),
+            _infoRow(Icons.location_on, data['address'] ?? 'N/A'),
             const SizedBox(height: spacingMedium),
-            _infoRow(Icons.location_on, data['description'] ?? 'Address N/A'),
+            _infoRow(Icons.description, data['reportdetails'] ?? 'N/A'),
           ],
         ),
       ),
@@ -199,6 +211,9 @@ class HistoryDetailsScreen extends StatelessWidget {
             Column(
               children: List.generate(responders.length, (index) {
                 final rescuer = responders[index];
+                Timestamp arrivedAt = rescuer['arrivedAt'];
+                DateTime dateTime = arrivedAt.toDate();
+                String formattedTime = DateFormat('h:mm a').format(dateTime);
                 return Column(
                   children: [
                     Container(
@@ -207,7 +222,7 @@ class HistoryDetailsScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            rescuer['name']!,
+                            '${rescuer['userDetails']['firstname']} ${rescuer['userDetails']['lastname']}',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -215,25 +230,16 @@ class HistoryDetailsScreen extends StatelessWidget {
                               fontFamily: 'REM',
                             ),
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            rescuer['role']!,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: primaryColor,
-                              fontFamily: 'REM',
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          _infoRow(Icons.location_on, rescuer['location']!),
                           const SizedBox(height: 10),
                           _infoRow(
                             Icons.access_time,
-                            'Time of Arrival: ${rescuer['time']}',
+                            'Time of Arrival: $formattedTime',
                           ),
                           const SizedBox(height: 10),
-                          _infoRow(Icons.phone, rescuer['contact']!),
+                          _infoRow(
+                            Icons.phone,
+                            rescuer['userDetails']['mobilenum']!,
+                          ),
                         ],
                       ),
                     ),

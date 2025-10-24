@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:frontend/main.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'historydetails.dart';
 import 'package:frontend/services/firestore.dart';
 import 'reportdetails.dart';
@@ -28,11 +29,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   List<Map<String, dynamic>> pendingReports = [];
   List<Map<String, dynamic>> completedReports = [];
   bool isLoading = true;
+  bool? isAdmin;
+  String? userID;
   @override
   void initState() {
     super.initState();
+    _loadUserID();
     fetchPendingReports();
     fetchCompletedReports();
+  }
+
+  // GET USER ID
+  Future<void> _loadUserID() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userID = prefs.getString('userID');
+      isAdmin = prefs.getBool('isAdmin');
+    });
   }
 
   // FILTERED DEFAULT HISTORY ENTRIES
@@ -166,7 +179,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HistoryDetailsScreen(historyEntry: entry),
+            builder: (context) =>
+                HistoryDetailsScreen(historyEntry: entry, isAdmin: isAdmin!),
           ),
         );
       },
