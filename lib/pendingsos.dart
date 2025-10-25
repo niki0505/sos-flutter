@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/services/firestore.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
+import 'home.dart';
 
 // REUSABLE COLORS & SPACING
 const Color primaryColor = Color(0xFFFA5246);
@@ -56,9 +57,12 @@ class _PendingSOSScreenState extends State<PendingSOSScreen>
     super.dispose();
   }
 
-  void _onCancelSOS() {
-    fireStoreService.cancelSOS(widget.sosID);
-    Navigator.pop(context, false);
+  void _onCancelSOS() async {
+    await fireStoreService.cancelSOS(widget.sosID);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomeScreen()),
+    );
   }
 
   @override

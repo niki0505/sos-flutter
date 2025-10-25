@@ -53,6 +53,41 @@ class _HomeScreenState extends State<HomeScreen> {
       isAdmin = prefs.getBool('isAdmin');
     });
 
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Check if location services are enabled
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Location services are disabled.")),
+      );
+      return;
+    }
+
+    // Check permission
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Location permission denied.")),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Location permissions are permanently denied, enable them in settings.",
+          ),
+        ),
+      );
+      return;
+    }
+
     _checkOngoingSOS();
     fetchCompletedReports();
   }
@@ -90,41 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // GET LOCATION
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Check if location services are enabled
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location services are disabled.")),
-      );
-      return;
-    }
-
-    // Check permission
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location permission denied.")),
-        );
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Location permissions are permanently denied, enable them in settings.",
-          ),
-        ),
-      );
-      return;
-    }
-
     // Get current position
     Position currentPosition = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
@@ -175,10 +175,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _sosProgress = 0.0;
     });
 
-    _getCurrentLocation();
+    await _getCurrentLocation();
 
-    Future.delayed(const Duration(seconds: 3), () async {
-      _checkOngoingSOS();
+    await Future.delayed(const Duration(seconds: 3), () async {
+      await _checkOngoingSOS();
       setState(() {
         _showBanner = true;
         _dots = "";
